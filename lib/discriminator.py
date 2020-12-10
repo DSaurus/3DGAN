@@ -4,7 +4,7 @@ from utils.network_utils import IdentityBlock, ConvBlock
 
 class Discriminator(nn.Module):
     def __init__(self):
-        super(ResNet3d, self).__init__()
+        super(Discriminator, self).__init__()
         self.stage = nn.Sequential(
             ConvBlock(1, [8, 8, 16]),
             ConvBlock(16, [16, 16, 32]),

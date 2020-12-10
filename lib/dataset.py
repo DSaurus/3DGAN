@@ -3,9 +3,9 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 
-class TrainDatasetNormal(Dataset):
+class TrainDataset(Dataset):
     def __init__(self, dataroot):
-        super(TrainDatasetNormal, self).__init__()
+        super(TrainDataset, self).__init__()
         self.dataroot = dataroot
         self.obj_list = os.listdir(self.dataroot)
     
@@ -15,4 +15,7 @@ class TrainDatasetNormal(Dataset):
         res['name'] = obj_name
         res['vox'] = torch.FloatTensor(np.load(os.path.join(self.dataroot, obj_name)))
         return res
+    
+    def __len__(self):
+        return len(self.obj_list)
         
