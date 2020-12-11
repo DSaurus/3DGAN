@@ -11,7 +11,10 @@ os.makedirs(save_dir, exist_ok=True)
 for mesh_name in tqdm(os.listdir(mesh_dir)):
     if os.path.exists(os.path.join(save_dir, mesh_name[:-4] + '.npy')):
         continue
-    mesh = trimesh.load(os.path.join(mesh_dir, mesh_name))
+    try:
+        mesh = trimesh.load(os.path.join(mesh_dir, mesh_name))
+    except Exception:
+        continue
 
     v = mesh.vertices
     vmin = np.min(v, axis=0)

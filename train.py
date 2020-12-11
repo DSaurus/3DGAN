@@ -6,11 +6,13 @@ from tqdm import tqdm
 import time
 import numpy as np
 import os
+from skimage import measure
 
 from lib.dataset import TrainDataset
 from lib.options import BaseOptions
 from lib.generator import Generator
 from lib.discriminator import Discriminator
+from utils.mesh_util import *
 
 
 config = BaseOptions().parse()
@@ -42,9 +44,9 @@ if __name__ == "__main__":
     optimD = torch.optim.Adam(netD.parameters(), lr=1e-4)
 
     EPOCH = 100
+    accuracy = 0.0
     for epoch in range(EPOCH):
         np.random.seed(int(time.time()))
-        accuracy = 0.0
         accuracy_sum = 0.0
         train_bar = tqdm(enumerate(dataloader))
         for train_idx, data in train_bar:
@@ -52,25 +54,39 @@ if __name__ == "__main__":
             random_vec = torch.FloatTensor(np.random.random((config.batch_size, 512, 1, 1, 1))).to(cuda)
             with torch.no_grad():
                 gen_res = netG.forward(random_vec)
-
+            verts, faces, normals, values = measure.marching_cubes_lewiner(gen_res[0].squeeze(0).detach().cpu().numpy(), 0.5)
+            
             dis_gen = netD.forward(gen_res)
             dis_gt = netD.forward(vox)
-
-            lossD = -torch.mean(torch.log(dis_gt) + torch.log(1 - dis_gen))
-            netD.zero_grad()
+            lossD = -torch.mean(torch.log(dis_gt)) - torch.mean(torch.log(1 - dis_gen))
+            
+            optimD.zero_grad()
             lossD.backward()
             if accuracy < 0.8:
                 optimD.step()
+            else:
+                print('not train discriminator!')
+
+                # verts, faces, normals, values = measure.marching_cubes_lewiner(gen_res[0].squeeze(0).detach().cpu().numpy(), 0.5)
+                # verts, faces, normals, values = measure.marching_cubes_lewiner(vox[0].squeeze(0).detach().cpu().numpy(), 0.5)
+                # print(gen_res[0].squeeze(0).detach().cpu().numpy())
+                # print(vox[0])
+                # verts /= 128
+                # verts[:, 0] -= 0.5
+                # verts[:, 2] -= 0.5
+                # save_obj_mesh('show/conv3d.obj', verts, faces)
+                # exit(0)
 
             gen_res = netG.forward(random_vec)
             dis_gen = netD.forward(gen_res)
-            lossG = torch.mean(torch.log(1 - dis_gen))
-            netG.zero_grad()
+            lossG = -torch.mean(torch.log(dis_gen))
+            optimG.zero_grad()
             lossG.backward()
             optimG.step()
             
-            accuracy_sum += torch.sum(1-dis_gen) + torch.sum(dis_gt)
-            accuracy = accuracy_sum / (2*config.batch_size*(train_idx+1))
+            # accuracy_sum += torch.sum(1-dis_gen) + torch.sum(dis_gt)
+            # accuracy = accuracy_sum / (2*config.batch_size*(train_idx+1))
+            accuracy = torch.mean(1-dis_gen) / 2 + torch.mean(dis_gt) / 2
             train_bar.set_description('discriminator accuracy : %f' % accuracy)
             log.add_scalar('gen_loss', lossG.item())
             log.add_scalar('dis_loss', lossD.item())

@@ -6,21 +6,29 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.stage = nn.Sequential(
-            ConvBlock(1, [8, 8, 16]),
-            ConvBlock(16, [16, 16, 32]),
-            ConvBlock(32, [16, 16, 64]),
-            ConvBlock(64, [32, 32, 128]),
-            ConvBlock(128, [64, 64, 256]),
-            ConvBlock(256, [64, 64, 256]),
-            ConvBlock(256, [128, 128, 512]),
-        )
-        self.last_stage = nn.Sequential(
-            IdentityBlock(512, [64, 64, 128]),
-            IdentityBlock(128, [16, 16, 32]),
-            IdentityBlock(32, [8, 8, 1]),
+            nn.Conv3d(1, 8, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(8),
+            nn.Conv3d(8, 16, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(16),
+            nn.Conv3d(16, 32, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(32),
+            nn.Conv3d(32, 64, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(64),
+            nn.Conv3d(64, 96, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(96),
+            nn.Conv3d(96, 128, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm3d(128),
+            nn.Conv3d(128, 160, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.Conv3d(160, 1, 1),
             nn.Sigmoid()
         )
     def forward(self, x):
         x = self.stage(x)
-        y = self.last_stage(x)
-        return y
+        return x
