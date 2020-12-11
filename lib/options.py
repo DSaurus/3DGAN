@@ -30,6 +30,7 @@ class BaseOptions():
         g_train.add_argument('--num_epoch', type=int, default=1000, help='num epoch to train')
 
         g_train.add_argument('--freq_save', type=int, default=50, help='freqency of the save_checkpoints')
+        g_train.add_argument('--train_2d', action='store_true')
         
         # path
         parser.add_argument('--checkpoints_path', type=str, default='./checkpoints', help='path to save checkpoints')
