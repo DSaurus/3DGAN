@@ -2,6 +2,40 @@ import torch
 import torch.nn as nn
 from utils.network_utils import IdentityBlock, ConvBlock
 
+class DiscriminatorSDF(nn.Module):
+    def __init__(self):
+        super(DiscriminatorSDF, self).__init__()
+        self.stage = nn.Sequential(
+            nn.Conv2d(128, 128, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(128),
+            nn.Conv2d(128, 128, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(128),
+            nn.Conv2d(128, 128, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(128),
+            nn.Conv2d(128, 64, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(64),
+            nn.Conv2d(64, 64, 3, stride=2, padding=1),   
+        )
+        self.last_stage = nn.Sequential(
+            nn.LeakyReLU(),
+            nn.Conv2d(64, 1, 1),
+            nn.Sigmoid()
+        )
+    def forward(self, x):
+        x = self.stage(x)
+        y = self.last_stage(x)
+        return y, x
+
 class Discriminator2D(nn.Module):
     def __init__(self):
         super(Discriminator2D, self).__init__()
