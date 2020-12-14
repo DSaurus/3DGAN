@@ -10,7 +10,7 @@ from skimage import measure
 
 from lib.dataset import TrainDataset
 from lib.options import BaseOptions
-from lib.compression import Compression2D
+from lib.compression import Compression2D, CompressionSDF
 from utils.mesh_util import *
 
 
@@ -26,13 +26,14 @@ if __name__ == "__main__":
     gpu_ids = [int(i) for i in config.gpu_ids.split(',')]
     cuda = torch.device('cuda:%s' % config.gpu_ids[0])
     
-    netG = Compression2D()
+    # netG = Compression2D()
+    netG = CompressionSDF()
     netG.to(cuda)
     netG = DataParallel(netG, gpu_ids)
 
     if config.load_netG_checkpoint_path:
         print('loading from ' + config.load_netG_checkpoint_path)
-        netG.load_state_dict(torch.load(config.load_netG_checkpoint_path))
+        netG.load_state_dict(torch.load(config.load_netG_checkpoint_path, map_location='cpu'))
 
     optimG = torch.optim.Adam(netG.parameters(), lr=1e-4)
 
@@ -46,21 +47,28 @@ if __name__ == "__main__":
         for train_idx, data in train_bar:
             vox = data["vox"].float().to(cuda)
             gen_vox = netG.forward(vox)
-            sum1 = torch.sum(vox)
-            sum0 = torch.sum(1-vox)
-            loss = loss_f(gen_vox * sum0 / sum1, vox * sum0 / sum1)
+            # sum1 = torch.sum(vox)
+            # sum0 = torch.sum(1-vox)
+            loss = loss_f(gen_vox, vox)
             optimG.zero_grad()
             loss.backward()
             optimG.step()
 
-            show_vox = gen_vox[0].detach().cpu().numpy()
-            print(torch.max(gen_vox), torch.mean(gen_vox), torch.mean(vox))
-            verts, faces, normals, values = measure.marching_cubes_lewiner(show_vox, 0.5)
-            verts /= 128
-            verts[:, 0] -= 0.5
-            verts[:, 2] -= 0.5
-            save_obj_mesh('show/conv3d.obj', verts, faces)
-            exit(0)
+            if config.show:
+                show_vox = gen_vox[0].detach().cpu().numpy()
+                show_gt = vox[0].detach().cpu().numpy()
+                print(torch.max(gen_vox), torch.mean(gen_vox), torch.mean(vox))
+                verts, faces, normals, values = measure.marching_cubes_lewiner(show_vox, 0.5)
+                verts /= 128
+                verts[:, 0] -= 0.5
+                verts[:, 2] -= 0.5
+                save_obj_mesh('show/conv3d.obj', verts, faces)
+                verts, faces, normals, values = measure.marching_cubes_lewiner(show_gt, 0.5)
+                verts /= 128
+                verts[:, 0] -= 0.5
+                verts[:, 2] -= 0.5
+                save_obj_mesh('show/convgt.obj', verts, faces)
+                exit(0)
             
             train_bar.set_description('loss : %f' % loss.item())
             log.add_scalar('loss', loss.item())
