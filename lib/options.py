@@ -17,6 +17,7 @@ class BaseOptions():
         g_exp = parser.add_argument_group('Experiment')
         g_exp.add_argument('--name', type=str, default='example',
                            help='name of the experiment. It decides where to store samples and models')
+        g_exp.add_argument('--show', action='store_true')
        
         # Training related
         g_train = parser.add_argument_group('Training')
@@ -31,6 +32,7 @@ class BaseOptions():
 
         g_train.add_argument('--freq_save', type=int, default=50, help='freqency of the save_checkpoints')
         g_train.add_argument('--train_2d', action='store_true')
+        g_train.add_argument('--train_sdf', action='store_true')
         
         # path
         parser.add_argument('--checkpoints_path', type=str, default='./checkpoints', help='path to save checkpoints')

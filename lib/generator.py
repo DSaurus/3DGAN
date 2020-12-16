@@ -2,6 +2,50 @@ import torch
 import torch.nn as nn
 from utils.network_utils import IdentityBlock, ConvBlock, MLP
 
+class GeneratorSDF2D(nn.Module):
+    def __init__(self):
+        super(GeneratorSDF2D, self).__init__()
+        self.stage = nn.Sequential(
+            nn.Conv2d(128, 128, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(128, 64, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(64),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(64, 64, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(64),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(64, 48, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(48),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(48, 32, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(32),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(32, 32, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(32),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(32, 16, 3, 1, 1),
+            nn.LeakyReLU(),
+            nn.BatchNorm2d(16),
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.Conv2d(16, 16, 1, 1)
+        )
+        self.mlp = MLP([17, 32, 32, 16, 1], nn.Sigmoid())
+
+    def forward(self, x):
+        feature = self.stage(x)
+        pts = torch.linspace(-1, 1, 128, dtype=feature.dtype, device=feature.device).reshape(1, 1, 128, 1, 1).repeat(x.shape[0], 1, 1, 128, 128)
+        feature = feature.unsqueeze(2).repeat(1, 1, 128, 1, 1)
+        feature = torch.cat([feature, pts], dim=1).reshape(x.shape[0], 16+1, -1)
+        sdf = self.mlp(feature)
+        sdf = sdf.reshape(x.shape[0], 128, 128, 128)
+        return sdf
+
 class GeneratorSDF(nn.Module):
     def __init__(self):
         super(GeneratorSDF, self).__init__()
